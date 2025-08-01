@@ -113,25 +113,40 @@
             overflow-y: auto;
             max-height: 100px;
         }
+        /* Video styling */
+        #video {
+            border-radius: 1rem;
+            max-width: 100%;
+            max-height: 10rem;
+            border: 2px solid #6b7280;
+            background: black;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center transition-colors duration-300">
     <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
         <div class="beta-label">Beta</div>
         <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">RecycleRight Classifier</h1>
-        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify recyclable materials and get recycling tips</p>
+        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image or take a photo to identify recyclable materials and get recycling tips</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
-            <div class="rounded-square flex flex-col items-center justify-center p-4">
-                <label for="image-upload" class="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
-                    <input type="file" accept="image/*" id="image-upload" class="hidden" onchange="previewImage(event)" />
+            <!-- Left: Upload + Camera -->
+            <div class="rounded-square flex flex-col items-center justify-center p-4 space-y-4">
+                <!-- Upload -->
+                <label for="image-upload" class="w-full h-20 flex items-center justify-center border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
+                    <input type="file" accept="image/*" id="image-upload" class="hidden" />
                     <span id="upload-text" class="text-gray-400 dark:text-gray-600 text-center">Drag and drop or click to upload</span>
                 </label>
-                <div id="image-preview" class="mt-4 hidden">
+                <div id="image-preview" class="w-full flex justify-center hidden">
                     <img id="preview-img" class="max-w-full max-h-40 rounded-lg" alt="Image Preview" />
                 </div>
+
+                <!-- Camera -->
+                <video id="video" autoplay playsinline></video>
+                <button id="take-photo-btn" class="glow-button text-white px-6 py-2 rounded-lg font-semibold" disabled>Take Photo</button>
             </div>
 
+            <!-- Right: Results -->
             <div class="rounded-square flex flex-col items-center justify-center p-4">
                 <div id="output" class="text-center w-full">
                     <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
@@ -152,133 +167,171 @@
         </div>
     </div>
 
-    <script>
-        const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json';
+<script>
+    const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json';
 
-        let model;
-        // Label order fixed: swapped Glass and Paper to match model output
-        const labels = ["Cardboard", "Glass", "metal", "Paper", "Plastic", "Trash"];
+    let model;
+    // Label order fixed: swapped Glass and Paper to match model output
+    const labels = ["Cardboard", "Glass", "metal", "Paper", "Plastic", "Trash"];
 
-        const recyclingTips = {
-            Cardboard: [
-                "Flatten cardboard boxes to save space in recycling bins.",
-                "Remove any tape, staples, or non-cardboard materials.",
-                "Keep cardboard dry and clean; avoid recycling greasy or food-contaminated items."
-            ],
-            Paper: [
-                "Recycle clean paper like office paper, newspapers, and magazines.",
-                "Remove plastic coatings, bindings, or food residue before recycling.",
-                "Check local guidelines, as some areas don't accept certain papers like laminated sheets."
-            ],
-            metal: [
-                "Recycle aluminum cans, tin cans, and foil after rinsing off food residue.",
-                "Remove non-metal parts like plastic lids if required by your local program.",
-                "Crush cans to save space, but check if your facility prefers them uncrushed."
-            ],
-            Glass: [
-                "Rinse glass bottles and jars to remove food or liquid residue.",
-                "Remove metal lids or corks and recycle them separately if required.",
-                "Check local rules, as some areas only accept certain colors of glass."
-            ],
-            Plastic: [
-                "Recycle plastics marked with recycling symbols 1-7, but check local guidelines.",
-                "Rinse containers and remove non-plastic parts like pumps or caps if needed.",
-                "Avoid recycling plastic bags in curbside bins; use designated drop-off locations."
-            ],
-            Trash: [
-                "Non-recyclable items like food waste or soiled materials should go in the trash.",
-                "Consider composting organic waste if available in your area.",
-                "Reduce waste by choosing reusable items over single-use products."
-            ]
-        };
+    const recyclingTips = {
+        Cardboard: [
+            "Flatten cardboard boxes to save space in recycling bins.",
+            "Remove any tape, staples, or non-cardboard materials.",
+            "Keep cardboard dry and clean; avoid recycling greasy or food-contaminated items."
+        ],
+        Paper: [
+            "Recycle clean paper like office paper, newspapers, and magazines.",
+            "Remove plastic coatings, bindings, or food residue before recycling.",
+            "Check local guidelines, as some areas don't accept certain papers like laminated sheets."
+        ],
+        metal: [
+            "Recycle aluminum cans, tin cans, and foil after rinsing off food residue.",
+            "Remove non-metal parts like plastic lids if required by your local program.",
+            "Crush cans to save space, but check if your facility prefers them uncrushed."
+        ],
+        Glass: [
+            "Rinse glass bottles and jars to remove food or liquid residue.",
+            "Remove metal lids or corks and recycle them separately if required.",
+            "Check local rules, as some areas only accept certain colors of glass."
+        ],
+        Plastic: [
+            "Recycle plastics marked with recycling symbols 1-7, but check local guidelines.",
+            "Rinse containers and remove non-plastic parts like pumps or caps if needed.",
+            "Avoid recycling plastic bags in curbside bins; use designated drop-off locations."
+        ],
+        Trash: [
+            "Non-recyclable items like food waste or soiled materials should go in the trash.",
+            "Consider composting organic waste if available in your area.",
+            "Reduce waste by choosing reusable items over single-use products."
+        ]
+    };
 
-        const imageUpload = document.getElementById('image-upload');
-        const previewImg = document.getElementById('preview-img');
-        const imagePreview = document.getElementById('image-preview');
-        const uploadText = document.getElementById('upload-text');
-        const classifyBtn = document.getElementById('classify-btn');
-        const resultDiv = document.getElementById('result');
-        const recyclingTipsDiv = document.getElementById('recycling-tips');
+    const imageUpload = document.getElementById('image-upload');
+    const previewImg = document.getElementById('preview-img');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadText = document.getElementById('upload-text');
+    const classifyBtn = document.getElementById('classify-btn');
+    const resultDiv = document.getElementById('result');
+    const recyclingTipsDiv = document.getElementById('recycling-tips');
+    const video = document.getElementById('video');
+    const takePhotoBtn = document.getElementById('take-photo-btn');
 
-        async function loadModel() {
-            resultDiv.textContent = 'Loading model... Please wait.';
-            try {
-                model = await tf.loadLayersModel(MODEL_URL);
-                resultDiv.textContent = 'Model loaded. Upload an image to classify.';
-            } catch (err) {
-                resultDiv.textContent = 'Failed to load model.';
-                console.error(err);
-            }
+    // Load ML model
+    async function loadModel() {
+        resultDiv.textContent = 'Loading model... Please wait.';
+        try {
+            model = await tf.loadLayersModel(MODEL_URL);
+            resultDiv.textContent = 'Model loaded. Upload an image or take a photo to classify.';
+        } catch (err) {
+            resultDiv.textContent = 'Failed to load model.';
+            console.error(err);
         }
+    }
 
-        function preprocessImage(imgElement) {
-            const tensor = tf.browser.fromPixels(imgElement)
-                .resizeNearestNeighbor([224, 224])
-                .toFloat()
-                .expandDims(0)
-                .div(255);
-            return tensor;
+    // Preprocess image for model input
+    function preprocessImage(imgElement) {
+        const tensor = tf.browser.fromPixels(imgElement)
+            .resizeNearestNeighbor([224, 224])
+            .toFloat()
+            .expandDims(0)
+            .div(255);
+        return tensor;
+    }
+
+    // Classify the image currently in previewImg
+    async function classifyImage() {
+        if (!model) {
+            alert('Model not loaded yet!');
+            return;
         }
+        resultDiv.textContent = 'Classifying...';
+        recyclingTipsDiv.innerHTML = '';
 
-        async function classifyImage() {
-            if (!model) {
-                alert('Model not loaded yet!');
-                return;
-            }
-            resultDiv.textContent = 'Classifying...';
+        const inputTensor = preprocessImage(previewImg);
+        const prediction = await model.predict(inputTensor).data();
+        inputTensor.dispose();
+
+        const results = Array.from(prediction)
+            .map((confidence, i) => ({ label: labels[i], confidence }))
+            .sort((a, b) => b.confidence - a.confidence);
+
+        const topResult = results[0];
+        const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
+
+        resultDiv.textContent = `${displayLabel} (${(topResult.confidence * 100).toFixed(2)}% sure)`;
+
+        const tips = recyclingTips[topResult.label] || ["No specific recycling tips available."];
+        recyclingTipsDiv.innerHTML = `
+            <div class="text-left">
+                <p class="font-semibold mb-1">How to Recycle ${displayLabel}:</p>
+                <ul class="list-disc list-inside text-sm">
+                    ${tips.map(tip => `<li>${tip}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    // Preview uploaded image
+    function previewImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImg.src = e.target.result;
+            imagePreview.classList.remove('hidden');
+            uploadText.textContent = file.name;
+            classifyBtn.disabled = false;
+            resultDiv.textContent = 'Ready to classify.';
             recyclingTipsDiv.innerHTML = '';
+        };
+        reader.readAsDataURL(file);
+    }
 
-            const inputTensor = preprocessImage(previewImg);
-            const prediction = await model.predict(inputTensor).data();
-            inputTensor.dispose();
-
-            const results = Array.from(prediction)
-                .map((confidence, i) => ({ label: labels[i], confidence }))
-                .sort((a, b) => b.confidence - a.confidence);
-
-            const topResult = results[0];
-            const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
-
-            resultDiv.textContent = `${displayLabel} (${(topResult.confidence * 100).toFixed(2)}% sure)`;
-
-            // Display recycling tips
-            const tips = recyclingTips[topResult.label] || ["No specific recycling tips available."];
-            recyclingTipsDiv.innerHTML = `
-                <div class="text-left">
-                    <p class="font-semibold mb-1">How to Recycle ${displayLabel}:</p>
-                    <ul class="list-disc list-inside text-sm">
-                        ${tips.map(tip => `<li>${tip}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
+    // Start camera stream
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            takePhotoBtn.disabled = false;
+        } catch (err) {
+            console.error('Error accessing camera:', err);
+            takePhotoBtn.disabled = true;
         }
+    }
 
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    // Capture photo from video feed
+    takePhotoBtn.addEventListener('click', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImg.src = e.target.result;
-                imagePreview.classList.remove('hidden');
-                uploadText.textContent = file.name;
-                classifyBtn.disabled = false;
-                resultDiv.textContent = 'Ready to classify.';
-                recyclingTipsDiv.innerHTML = '';
-            };
-            reader.readAsDataURL(file);
-        }
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        imageUpload.addEventListener('change', previewImage);
-        classifyBtn.addEventListener('click', classifyImage);
+        const dataUrl = canvas.toDataURL('image/png');
 
-        // Theme toggle
-        const toggleSlider = document.getElementById('theme-toggle');
-        toggleSlider.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-        });
+        previewImg.src = dataUrl;
+        imagePreview.classList.remove('hidden');
+        uploadText.textContent = 'Photo taken';
+        classifyBtn.disabled = false;
+        resultDiv.textContent = 'Ready to classify.';
+        recyclingTipsDiv.innerHTML = '';
+    });
 
-        loadModel();
-    </script>
+    // Event listeners
+    imageUpload.addEventListener('change', previewImage);
+    classifyBtn.addEventListener('click', classifyImage);
+
+    // Theme toggle
+    const toggleSlider = document.getElementById('theme-toggle');
+    toggleSlider.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+    });
+
+    loadModel();
+    startCamera();
+</script>
 </body>
 </html>
