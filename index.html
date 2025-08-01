@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🗑️ AI Trash Sorter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    img {
+      max-width: 300px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗑️ AI Trash Sorter</h1>
+  <p>Select an image of trash and the AI will classify it.</p>
+  
+  <input type="file" id="imageUpload" accept="image/*" />
+  <br />
+  <img id="preview" src="#" alt="Preview" style="display:none;" />
+  <div class="result" id="result"></div>
+
+  <!-- Load TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
+  <script>
+    const classNames = ["Cardboard", "Paper", "metal", "Glass", "Plastic", "Trash"];
+
+    let model;
+    const modelURL = "model.json"; // make sure model.json and weights.bin are in same folder
+
+    async function loadModel() {
+      model = await tf.loadGraphModel(modelURL);
+      console.log("Model loaded.");
+    }
