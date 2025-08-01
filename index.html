@@ -7,12 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
     <style>
-        /* Custom hover animation for buttons */
         .glow-button {
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            background-color: #22c55e; /* Light green */
+            background-color: #22c55e;
         }
         .glow-button:hover {
             transform: translateY(-2px);
@@ -36,7 +35,6 @@
         .glow-button:hover::before {
             left: 100%;
         }
-        /* File input styling */
         .file-input::-webkit-file-upload-button {
             @apply text-white px-4 py-2 rounded-lg glow-button;
             background-color: #22c55e;
@@ -45,37 +43,35 @@
             @apply text-gray-200;
             background-color: #16a34a;
         }
-        /* Eco-friendly color scheme */
         body {
-            background-color: #111827; /* Dark gray-black */
+            background-color: #111827;
         }
         .dark body {
-            background-color: #f3f4f6; /* Light gray for light mode */
+            background-color: #f3f4f6;
         }
         .container-bg {
-            background-color: #1f2937; /* Darker gray for container */
-            position: relative; /* For positioning beta label */
+            background-color: #1f2937;
+            position: relative;
         }
         .dark .container-bg {
-            background-color: #ffffff; /* White for light mode */
+            background-color: #ffffff;
         }
-        /* Slider styling */
         .slider-container {
             width: 60px;
             height: 30px;
-            background-color: #374151; /* Dark gray */
+            background-color: #374151;
             border-radius: 9999px;
             position: relative;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
         .dark .slider-container {
-            background-color: #d1d5db; /* Light gray */
+            background-color: #d1d5db;
         }
         .slider {
             width: 26px;
             height: 26px;
-            background-color: #22c55e; /* Light green */
+            background-color: #22c55e;
             border-radius: 50%;
             position: absolute;
             top: 2px;
@@ -85,7 +81,6 @@
         .dark .slider {
             transform: translateX(30px);
         }
-        /* Rounded squares */
         .rounded-square {
             width: 100%;
             height: 16rem;
@@ -95,7 +90,6 @@
         .dark .rounded-square {
             border-color: #d1d5db;
         }
-        /* Beta label */
         .beta-label {
             position: absolute;
             top: 10px;
@@ -107,7 +101,6 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-        /* Recycling tips styling */
         .recycling-tips {
             max-width: 100%;
             overflow-y: auto;
@@ -118,7 +111,7 @@
 <body class="min-h-screen flex items-center justify-center transition-colors duration-300">
     <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
         <div class="beta-label">Beta</div>
-        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">RecycleRight Classifier</h1>
+        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Recycle-AI</h1>
         <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify recyclable materials and get recycling tips</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
@@ -156,7 +149,6 @@
         const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json';
 
         let model;
-        // Label order fixed: swapped Glass and Paper to match model output
         const labels = ["Cardboard", "Glass", "metal", "Paper", "Plastic", "Trash"];
 
         const recyclingTips = {
@@ -241,7 +233,6 @@
 
             resultDiv.textContent = `${displayLabel} (${(topResult.confidence * 100).toFixed(2)}% sure)`;
 
-            // Display recycling tips
             const tips = recyclingTips[topResult.label] || ["No specific recycling tips available."];
             recyclingTipsDiv.innerHTML = `
                 <div class="text-left">
@@ -272,7 +263,6 @@
         imageUpload.addEventListener('change', previewImage);
         classifyBtn.addEventListener('click', classifyImage);
 
-        // Theme toggle
         const toggleSlider = document.getElementById('theme-toggle');
         toggleSlider.addEventListener('click', () => {
             document.body.classList.toggle('dark');
