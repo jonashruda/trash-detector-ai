@@ -1,52 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>🗑️ AI Trash Sorter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      text-align: center;
-      background: #f0f0f0;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    input[type="file"] {
-      margin: 20px 0;
-    }
-    img {
-      max-width: 300px;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-      background: white;
-    }
-    .result {
-      margin-top: 20px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trash Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom hover animation for buttons */
+        .glow-button {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background-color: #22c55e; /* Light green */
+        }
+        .glow-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+        }
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+        .glow-button:hover::before {
+            left: 100%;
+        }
+        /* File input styling */
+        .file-input::-webkit-file-upload-button {
+            @apply text-white px-4 py-2 rounded-lg glow-button;
+            background-color: #22c55e;
+        }
+        .file-input:dark::-webkit-file-upload-button {
+            @apply text-gray-200;
+            background-color: #16a34a;
+        }
+        /* Eco-friendly color scheme */
+        body {
+            background-color: #111827; /* Dark gray-black */
+        }
+        .dark body {
+            background-color: #f3f4f6; /* Light gray for light mode */
+        }
+        .container-bg {
+            background-color: #1f2937; /* Darker gray for container */
+        }
+        .dark .container-bg {
+            background-color: #ffffff; /* White for light mode */
+        }
+        /* Slider styling */
+        .slider-container {
+            width: 60px;
+            height: 30px;
+            background-color: #374151; /* Dark gray */
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .dark .slider-container {
+            background-color: #d1d5db; /* Light gray */
+        }
+        .slider {
+            width: 26px;
+            height: 26px;
+            background-color: #22c55e; /* Light green */
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+        .dark .slider {
+            transform: translateX(30px);
+        }
+        /* Rounded squares */
+        .rounded-square {
+            @apply w-full h-64 rounded-3xl border-2 border-gray-500 dark:border-gray-300;
+        }
+    </style>
 </head>
-<body>
-  <h1>🗑️ AI Trash Sorter</h1>
-  <p>Select an image of trash and the AI will classify it.</p>
-  
-  <input type="file" id="imageUpload" accept="image/*" />
-  <br />
-  <img id="preview" src="#" alt="Preview" style="display:none;" />
-  <div class="result" id="result"></div>
+<body class="min-h-screen flex items-center justify-center transition-colors duration-300">
+    <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
+        <!-- Title -->
+        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Trash Classifier</h1>
+        <!-- Description -->
+        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify the type of trash</p>
 
-  <!-- Load TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
-  <script>
-    const classNames = ["Cardboard", "Paper", "metal", "Glass", "Plastic", "Trash"];
+        <!-- Main Content: Two Rounded Squares -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
+            <!-- Left: Image Upload -->
+            <div class="rounded-square flex flex-col items-center justify-center p-4">
+                <div class="border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg w-full h-full flex items-center justify-center cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
+                    <input type="file" accept="image/*" class="file-input hidden" id="image-upload" onchange="previewImage(event)">
+                    <span id="upload-text" class="text-gray-400 dark:text-gray-600 text-center">Drag and drop or click to upload</span>
+                </div>
+                <!-- Image Preview -->
+                <div id="image-preview" class="mt-4 hidden">
+                    <img id="preview-img" class="max-w-full max-h-40 rounded-lg" alt="Image Preview">
+                </div>
+            </div>
 
-    let model;
-    const modelURL = "model.json"; // make sure model.json and weights.bin are in same folder
+            <!-- Right: Results -->
+            <div class="rounded-square flex flex-col items-center justify-center p-4">
+                <div id="output" class="text-center">
+                    <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
+                    <div id="top-classes" class="text-gray-300 dark:text-gray-600"></div>
+                </div>
+            </div>
+        </div>
 
-    async function loadModel() {
-      model = await tf.loadGraphModel(modelURL);
-      console.log("Model loaded.");
-    }
+        <!-- Classify Button -->
+        <div class="flex justify-center mb-6">
+            <button id="classify-btn" class="glow-button text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>Classify</button>
+        </div>
+
+        <!-- Settings Slider -->
+        <div class="flex flex-col items-center">
+            <span class="text-gray-400 dark:text-gray-600 mb-2">Theme</span>
+            <div id="theme-toggle" class="slider-container">
+                <div class="slider"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Toggle
+        const toggleSlider = document.getElementById('theme-toggle');
+        toggleSlider.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+        });
+
+        // Image Preview
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const previewImg = document.getElementById('preview-img');
+            const uploadText = document.getElementById('upload-text');
+            const imagePreview = document.getElementById('image-preview');
+            const classifyBtn = document.getElementById('classify-btn');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    uploadText.textContent = file.name;
+                    classifyBtn.disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Mock Classification (replace with Teachable Machine model)
+        document.getElementById('classify-btn').addEventListener('click', () => {
+            const resultDiv = document.getElementById('result');
+            const topClassesDiv = document.getElementById('top-classes');
+            
+            // Simulated classification results
+            const mockResults = [
+                { label: 'Plastic', confidence: 0.85 },
+                { label: 'Organic', confidence: 0.10 },
+                { label: 'Paper', confidence: 0.05 }
+            ];
+
+            // Find most likely result
+            const mostLikely = mockResults.reduce((max, curr) => 
+                curr.confidence > max.confidence ? curr : max
+            );
+
+            resultDiv.textContent = `Most Likely: ${mostLikely.label} (${(mostLikely.confidence * 100).toFixed(2)}%)`;
+            topClassesDiv.innerHTML = mockResults.map(result => 
+                `<div class="${result.label === mostLikely.label ? 'text-green-400 dark:text-green-600 font-semibold' : 'text-gray-300 dark:text-gray-600'}">
+                    ${result.label}: ${(result.confidence * 100).toFixed(2)}%
+                </div>`
+            ).join('');
+        });
+    </script>
+</body>
+</html>
