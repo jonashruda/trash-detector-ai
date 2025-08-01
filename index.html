@@ -54,6 +54,7 @@
         }
         .container-bg {
             background-color: #1f2937; /* Darker gray for container */
+            position: relative; /* For positioning beta label */
         }
         .dark .container-bg {
             background-color: #ffffff; /* White for light mode */
@@ -94,14 +95,34 @@
         .dark .rounded-square {
             border-color: #d1d5db;
         }
+        /* Beta label */
+        .beta-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #22c55e;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        /* Recycling tips styling */
+        .recycling-tips {
+            max-width: 100%;
+            overflow-y: auto;
+            max-height: 100px;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center transition-colors duration-300">
     <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
+        <!-- Beta Label -->
+        <div class="beta-label">Beta</div>
         <!-- Title -->
-        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Trash Classifier</h1>
+        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">RecycleRight Classifier</h1>
         <!-- Description -->
-        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify the type of trash</p>
+        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify recyclable materials and get recycling tips</p>
 
         <!-- Main Content: Two Rounded Squares -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
@@ -120,7 +141,7 @@
             <div class="rounded-square flex flex-col items-center justify-center p-4">
                 <div id="output" class="text-center w-full">
                     <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
-                    <div id="top-classes" class="text-gray-300 dark:text-gray-600"></div>
+                    <div id="recycling-tips" class="text-gray-300 dark:text-gray-600 recycling-tips"></div>
                 </div>
             </div>
         </div>
@@ -145,13 +166,46 @@
         let model;
         const labels = ["Cardboard", "Paper", "metal", "Glass", "Plastic", "Trash"];
 
+        const recyclingTips = {
+            Cardboard: [
+                "Flatten cardboard boxes to save space in recycling bins.",
+                "Remove any tape, staples, or non-cardboard materials.",
+                "Keep cardboard dry and clean; avoid recycling greasy or food-contaminated items."
+            ],
+            Paper: [
+                "Recycle clean paper like office paper, newspapers, and magazines.",
+                "Remove plastic coatings, bindings, or food residue before recycling.",
+                "Check local guidelines, as some areas don't accept certain papers like laminated sheets."
+            ],
+            metal: [
+                "Recycle aluminum cans, tin cans, and foil after rinsing off food residue.",
+                "Remove non-metal parts like plastic lids if required by your local program.",
+                "Crush cans to save space, but check if your facility prefers them uncrushed."
+            ],
+            Glass: [
+                "Rinse glass bottles and jars to remove food or liquid residue.",
+                "Remove metal lids or corks and recycle them separately if required.",
+                "Check local rules, as some areas only accept certain colors of glass."
+            ],
+            Plastic: [
+                "Recycle plastics marked with recycling symbols 1-7, but check local guidelines.",
+                "Rinse containers and remove non-plastic parts like pumps or caps if needed.",
+                "Avoid recycling plastic bags in curbside bins; use designated drop-off locations."
+            ],
+            Trash: [
+                "Non-recyclable items like food waste or soiled materials should go in the trash.",
+                "Consider composting organic waste if available in your area.",
+                "Reduce waste by choosing reusable items over single-use products."
+            ]
+        };
+
         const imageUpload = document.getElementById('image-upload');
         const previewImg = document.getElementById('preview-img');
         const imagePreview = document.getElementById('image-preview');
         const uploadText = document.getElementById('upload-text');
         const classifyBtn = document.getElementById('classify-btn');
         const resultDiv = document.getElementById('result');
-        const topClassesDiv = document.getElementById('top-classes');
+        const recyclingTipsDiv = document.getElementById('recycling-tips');
 
         async function loadModel() {
             resultDiv.textContent = 'Loading model... Please wait.';
@@ -166,7 +220,7 @@
 
         function preprocessImage(imgElement) {
             const tensor = tf.browser.fromPixels(imgElement)
-                .resizeNearestNeighbor([224, 224]) // adjust if your model input size is different
+                .resizeNearestNeighbor([224, 224])
                 .toFloat()
                 .expandDims(0)
                 .div(255);
@@ -179,7 +233,7 @@
                 return;
             }
             resultDiv.textContent = 'Classifying...';
-            topClassesDiv.innerHTML = '';
+            recyclingTipsDiv.innerHTML = '';
 
             const inputTensor = preprocessImage(previewImg);
             const prediction = await model.predict(inputTensor).data();
@@ -192,14 +246,18 @@
             const topResult = results[0];
             const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
 
-            resultDiv.textContent = `Most Likely: ${displayLabel} (${(topResult.confidence * 100).toFixed(2)}%)`;
+            resultDiv.textContent = `${displayLabel} (${(topResult.confidence * 100).toFixed(2)}% sure)`;
 
-            topClassesDiv.innerHTML = results.map(r => {
-                const labelDisplay = r.label.charAt(0).toUpperCase() + r.label.slice(1);
-                return `<div class="${r.label === topResult.label ? 'text-green-400 dark:text-green-600 font-semibold' : 'text-gray-300 dark:text-gray-600'}">
-                    ${labelDisplay}: ${(r.confidence * 100).toFixed(2)}%
-                </div>`;
-            }).join('');
+            // Display recycling tips
+            const tips = recyclingTips[topResult.label] || ["No specific recycling tips available."];
+            recyclingTipsDiv.innerHTML = `
+                <div class="text-left">
+                    <p class="font-semibold mb-1">How to Recycle ${displayLabel}:</p>
+                    <ul class="list-disc list-inside text-sm">
+                        ${tips.map(tip => `<li>${tip}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
         }
 
         imageUpload.addEventListener('change', (event) => {
@@ -213,7 +271,7 @@
                 uploadText.textContent = file.name;
                 classifyBtn.disabled = false;
                 resultDiv.textContent = 'Ready to classify.';
-                topClassesDiv.innerHTML = '';
+                recyclingTipsDiv.innerHTML = '';
             };
             reader.readAsDataURL(file);
         });
