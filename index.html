@@ -1,215 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trash Classifier</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
-  <style>
-    .glow-button {
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      background-color: #22c55e;
-    }
-    .glow-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
-    }
-    .glow-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-      );
-      transition: 0.5s;
-    }
-    .glow-button:hover::before {
-      left: 100%;
-    }
-    body {
-      background-color: #111827;
-    }
-    .dark body {
-      background-color: #f3f4f6;
-    }
-    .container-bg {
-      background-color: #1f2937;
-    }
-    .dark .container-bg {
-      background-color: #ffffff;
-    }
-    .slider-container {
-      width: 60px;
-      height: 30px;
-      background-color: #374151;
-      border-radius: 9999px;
-      position: relative;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .dark .slider-container {
-      background-color: #d1d5db;
-    }
-    .slider {
-      width: 26px;
-      height: 26px;
-      background-color: #22c55e;
-      border-radius: 50%;
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      transition: transform 0.3s ease;
-    }
-    .dark .slider {
-      transform: translateX(30px);
-    }
-    .rounded-square {
-      width: 100%;
-      height: 16rem;
-      border-radius: 1.5rem;
-      border: 2px solid #6b7280;
-    }
-    .dark .rounded-square {
-      border-color: #d1d5db;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trash Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
+    <style>
+        /* Custom hover animation for buttons */
+        .glow-button {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background-color: #22c55e; /* Light green */
+        }
+        .glow-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+        }
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transition: 0.5s;
+        }
+        .glow-button:hover::before {
+            left: 100%;
+        }
+        /* File input styling */
+        .file-input::-webkit-file-upload-button {
+            @apply text-white px-4 py-2 rounded-lg glow-button;
+            background-color: #22c55e;
+        }
+        .file-input:dark::-webkit-file-upload-button {
+            @apply text-gray-200;
+            background-color: #16a34a;
+        }
+        /* Eco-friendly color scheme */
+        body {
+            background-color: #111827; /* Dark gray-black */
+        }
+        .dark body {
+            background-color: #f3f4f6; /* Light gray for light mode */
+        }
+        .container-bg {
+            background-color: #1f2937; /* Darker gray for container */
+        }
+        .dark .container-bg {
+            background-color: #ffffff; /* White for light mode */
+        }
+        /* Slider styling */
+        .slider-container {
+            width: 60px;
+            height: 30px;
+            background-color: #374151; /* Dark gray */
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .dark .slider-container {
+            background-color: #d1d5db; /* Light gray */
+        }
+        .slider {
+            width: 26px;
+            height: 26px;
+            background-color: #22c55e; /* Light green */
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+        .dark .slider {
+            transform: translateX(30px);
+        }
+        /* Rounded squares */
+        .rounded-square {
+            width: 100%;
+            height: 16rem;
+            border-radius: 1.5rem;
+            border: 2px solid #6b7280;
+        }
+        .dark .rounded-square {
+            border-color: #d1d5db;
+        }
+    </style>
 </head>
 <body class="min-h-screen flex items-center justify-center transition-colors duration-300">
-  <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
-    <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Trash Classifier</h1>
-    <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify the type of trash</p>
+    <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
+        <!-- Title -->
+        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Trash Classifier</h1>
+        <!-- Description -->
+        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify the type of trash</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
-      <div class="rounded-square flex flex-col items-center justify-center p-4">
-        <label for="image-upload" class="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
-          <input type="file" accept="image/*" id="image-upload" class="hidden" />
-          <span id="upload-text" class="text-gray-400 dark:text-gray-600 text-center">Drag and drop or click to upload</span>
-        </label>
-        <div id="image-preview" class="mt-4 hidden">
-          <img id="preview-img" class="max-w-full max-h-40 rounded-lg" alt="Image Preview" />
+        <!-- Main Content: Two Rounded Squares -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
+            <!-- Left: Image Upload -->
+            <div class="rounded-square flex flex-col items-center justify-center p-4">
+                <label for="image-upload" class="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
+                    <input type="file" accept="image/*" id="image-upload" class="hidden" onchange="previewImage(event)" />
+                    <span id="upload-text" class="text-gray-400 dark:text-gray-600 text-center">Drag and drop or click to upload</span>
+                </label>
+                <div id="image-preview" class="mt-4 hidden">
+                    <img id="preview-img" class="max-w-full max-h-40 rounded-lg" alt="Image Preview" />
+                </div>
+            </div>
+
+            <!-- Right: Results -->
+            <div class="rounded-square flex flex-col items-center justify-center p-4">
+                <div id="output" class="text-center w-full">
+                    <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
+                    <div id="top-classes" class="text-gray-300 dark:text-gray-600"></div>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <div class="rounded-square flex flex-col items-center justify-center p-4">
-        <div id="output" class="text-center w-full">
-          <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
-          <div id="top-classes" class="text-gray-300 dark:text-gray-600"></div>
+        <!-- Classify Button -->
+        <div class="flex justify-center mb-6">
+            <button id="classify-btn" class="glow-button text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>Classify</button>
         </div>
-      </div>
+
+        <!-- Settings Slider -->
+        <div class="flex flex-col items-center">
+            <span class="text-gray-400 dark:text-gray-600 mb-2">Theme</span>
+            <div id="theme-toggle" class="slider-container">
+                <div class="slider"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="flex justify-center mb-6">
-      <button id="classify-btn" class="glow-button text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>Classify</button>
-    </div>
+    <script>
+        const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json';
 
-    <div class="flex flex-col items-center">
-      <span class="text-gray-400 dark:text-gray-600 mb-2">Theme</span>
-      <div id="theme-toggle" class="slider-container">
-        <div class="slider"></div>
-      </div>
-    </div>
-  </div>
+        let model;
+        const labels = ["Cardboard", "Paper", "metal", "Glass", "Plastic", "Trash"];
 
-  <script>
-    const MODEL_URL = 'path/to/your/model.json'; // <-- Replace with your model URL
+        const imageUpload = document.getElementById('image-upload');
+        const previewImg = document.getElementById('preview-img');
+        const imagePreview = document.getElementById('image-preview');
+        const uploadText = document.getElementById('upload-text');
+        const classifyBtn = document.getElementById('classify-btn');
+        const resultDiv = document.getElementById('result');
+        const topClassesDiv = document.getElementById('top-classes');
 
-    let model;
-    // Use exact labels with 'metal' lowercase if your model uses that
-    const labels = ["Cardboard", "Paper", "metal", "Glass", "Plastic", "Trash"];
+        async function loadModel() {
+            resultDiv.textContent = 'Loading model... Please wait.';
+            try {
+                model = await tf.loadLayersModel(MODEL_URL);
+                resultDiv.textContent = 'Model loaded. Upload an image to classify.';
+            } catch (err) {
+                resultDiv.textContent = 'Failed to load model.';
+                console.error(err);
+            }
+        }
 
-    const imageUpload = document.getElementById('image-upload');
-    const previewImg = document.getElementById('preview-img');
-    const imagePreview = document.getElementById('image-preview');
-    const uploadText = document.getElementById('upload-text');
-    const classifyBtn = document.getElementById('classify-btn');
-    const resultDiv = document.getElementById('result');
-    const topClassesDiv = document.getElementById('top-classes');
+        function preprocessImage(imgElement) {
+            const tensor = tf.browser.fromPixels(imgElement)
+                .resizeNearestNeighbor([224, 224]) // adjust if your model input size is different
+                .toFloat()
+                .expandDims(0)
+                .div(255);
+            return tensor;
+        }
 
-    async function loadModel() {
-      resultDiv.textContent = 'Loading model... Please wait.';
-      try {
-        model = await tf.loadLayersModel(MODEL_URL);
-        resultDiv.textContent = 'Model loaded. Upload an image to classify.';
-      } catch (err) {
-        resultDiv.textContent = 'Failed to load model.';
-        console.error(err);
-      }
-    }
+        async function classifyImage() {
+            if (!model) {
+                alert('Model not loaded yet!');
+                return;
+            }
+            resultDiv.textContent = 'Classifying...';
+            topClassesDiv.innerHTML = '';
 
-    function preprocessImage(imgElement) {
-      const tensor = tf.browser.fromPixels(imgElement)
-        .resizeNearestNeighbor([224, 224]) // adjust if your model input size is different
-        .toFloat()
-        .expandDims(0)
-        .div(255);
-      return tensor;
-    }
+            const inputTensor = preprocessImage(previewImg);
+            const prediction = await model.predict(inputTensor).data();
+            inputTensor.dispose();
 
-    async function classifyImage() {
-      if (!model) {
-        alert('Model not loaded yet!');
-        return;
-      }
-      resultDiv.textContent = 'Classifying...';
-      topClassesDiv.innerHTML = '';
+            const results = Array.from(prediction)
+                .map((confidence, i) => ({ label: labels[i], confidence }))
+                .sort((a, b) => b.confidence - a.confidence);
 
-      const inputTensor = preprocessImage(previewImg);
-      const prediction = await model.predict(inputTensor).data();
-      inputTensor.dispose();
+            const topResult = results[0];
+            const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
 
-      const results = Array.from(prediction)
-        .map((confidence, i) => ({ label: labels[i], confidence }))
-        .sort((a, b) => b.confidence - a.confidence);
+            resultDiv.textContent = `Most Likely: ${displayLabel} (${(topResult.confidence * 100).toFixed(2)}%)`;
 
-      const topResult = results[0];
+            topClassesDiv.innerHTML = results.map(r => {
+                const labelDisplay = r.label.charAt(0).toUpperCase() + r.label.slice(1);
+                return `<div class="${r.label === topResult.label ? 'text-green-400 dark:text-green-600 font-semibold' : 'text-gray-300 dark:text-gray-600'}">
+                    ${labelDisplay}: ${(r.confidence * 100).toFixed(2)}%
+                </div>`;
+            }).join('');
+        }
 
-      // Capitalize label display (optional)
-      const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-      resultDiv.textContent = `Most Likely: ${displayLabel} (${(topResult.confidence * 100).toFixed(2)}%)`;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                imagePreview.classList.remove('hidden');
+                uploadText.textContent = file.name;
+                classifyBtn.disabled = false;
+                resultDiv.textContent = 'Ready to classify.';
+                topClassesDiv.innerHTML = '';
+            };
+            reader.readAsDataURL(file);
+        });
 
-      topClassesDiv.innerHTML = results.map(r => {
-        const labelDisplay = r.label.charAt(0).toUpperCase() + r.label.slice(1);
-        return `<div class="${r.label === topResult.label ? 'text-green-400 dark:text-green-600 font-semibold' : 'text-gray-300 dark:text-gray-600'}">
-          ${labelDisplay}: ${(r.confidence * 100).toFixed(2)}%
-        </div>`;
-      }).join('');
-    }
+        classifyBtn.addEventListener('click', classifyImage);
 
-    imageUpload.addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
+        // Theme toggle
+        const toggleSlider = document.getElementById('theme-toggle');
+        toggleSlider.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+        });
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        previewImg.src = e.target.result;
-        imagePreview.classList.remove('hidden');
-        uploadText.textContent = file.name;
-        classifyBtn.disabled = false;
-        resultDiv.textContent = 'Ready to classify.';
-        topClassesDiv.innerHTML = '';
-      };
-      reader.readAsDataURL(file);
-    });
-
-    classifyBtn.addEventListener('click', classifyImage);
-
-    // Theme toggle
-    const toggleSlider = document.getElementById('theme-toggle');
-    toggleSlider.addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-    });
-
-    loadModel();
-  </script>
+        loadModel();
+    </script>
 </body>
 </html>
