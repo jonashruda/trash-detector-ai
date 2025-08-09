@@ -5,244 +5,154 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Eco AI — Trash classifier</title>
 
-<!-- Inter font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<!-- TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
 
 <style>
-  /*
-    Eco AI — dark-first, full-screen, polished UI.
-    Tweak CSS variables below to change colors and sizes.
-  */
   :root{
-    --bg-900: #0b1020;
-    --bg-800: #0f1724;
-    --panel:  #0f1724;
-    --muted:  #94a3b8;
-    --card:   #0b1220;
-    --glass:  rgba(255,255,255,0.03);
-    --accent: #16a34a; /* green - recyclable */
-    --warn:   #f59e0b; /* unsure */
-    --danger: #ef4444; /* non-recyclable */
-    --surface: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    --radius: 14px;
-    --maxwidth: 1280px;
-    --gap: 22px;
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    color-scheme: dark;
+    --bg-900:#0b0f18;
+    --bg-800:#0c1424;
+    --panel:#0f172a;
+    --card:#0b1220;
+    --muted:#9fb0c9;
+    --glass:rgba(255,255,255,.04);
+
+    /* greener brand */
+    --accent:#16a34a;   /* green */
+    --accent-2:#22c55e; /* lighter green for hovers */
+    --warn:#f59e0b;
+    --danger:#ef4444;
+
+    --radius:16px;
+    --gap:22px;
+    --maxwidth:1200px;
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    color-scheme:dark;
   }
 
-  /* Light theme overrides (applied when body.light is set) */
-  body.light {
-    --bg-900: #f6f7fb;
-    --bg-800: #eef2ff;
-    --panel: #ffffff;
-    --card:  #ffffff;
-    --glass: rgba(2,6,23,0.04);
-    --muted: #475569;
-    --surface: linear-gradient(180deg,#ffffff,#f8fafc);
-  }
-
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
   body{
-    min-height:100vh;
+    margin:0;min-height:100vh;padding:18px;
     background:
-      radial-gradient(800px 400px at 10% 10%, rgba(22,163,74,0.05) 0%, transparent 12%),
-      linear-gradient(180deg,var(--bg-800), var(--bg-900));
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:28px;
-    color: #dbeafe;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    transition: background .24s ease, color .18s ease;
+      radial-gradient(900px 400px at 12% 8%, rgba(34,197,94,.08) 0%, transparent 35%),
+      linear-gradient(180deg,var(--bg-800),var(--bg-900));
+    color:#e5f3ff;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   }
 
-  /* Page container */
-  .page {
-    width: calc(100% - 56px);
-    max-width: var(--maxwidth);
-    background: var(--panel);
-    border-radius: 18px;
-    padding: 28px;
-    box-shadow: 0 20px 60px rgba(2,6,23,0.6);
-    display: grid;
-    grid-template-columns: 1fr 420px;
-    gap: var(--gap);
-    align-items:start;
-    min-height: calc(100vh - 56px);
-    overflow: auto;
+  /* Page shell — less dead space, stronger contrast */
+  .page{
+    width:100%;max-width:var(--maxwidth);
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.015));
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:24px;
+    padding:22px 22px 24px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.45);
+    display:grid;grid-template-columns:1.1fr .9fr;gap:var(--gap);
   }
 
-  /* Header */
+  /* Header — brand centered */
   header{
     grid-column:1 / -1;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:6px;
+    display:grid;grid-template-columns:1fr auto 1fr;
+    align-items:center;margin-bottom:4px;
   }
-  .brand {
-    display:flex;
-    gap:14px;
-    align-items:center;
+  .brand{justify-self:center;display:flex;gap:12px;align-items:center}
+  .logo{
+    width:56px;height:56px;border-radius:14px;display:grid;place-items:center;
+    font-weight:800;color:white;letter-spacing:.2px;
+    background:conic-gradient(from 210deg at 50% 50%, #0ea5a9, #22c55e);
+    box-shadow:0 10px 30px rgba(34,197,94,.18), inset 0 0 0 1px rgba(255,255,255,.15);
   }
-  .logo {
-    width:60px;height:60px;border-radius:12px;
-    display:grid;place-items:center;font-weight:700;
-    background: linear-gradient(135deg,#0ea5a9,#10b981);
-    color:white;font-size:20px;
-    box-shadow: 0 8px 30px rgba(16,185,129,0.08);
-  }
-  h1{margin:0;font-size:20px}
-  .sub{margin:0;color:var(--muted);font-size:13px}
+  h1{margin:0;font-size:22px}
+  .sub{display:none} /* removed per request */
 
-  /* Theme switch */
-  .controls {
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-  .switch {
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    background: rgba(255,255,255,0.02);
-    padding:8px;border-radius:999px;
-  }
-  .switch input[type="checkbox"]{display:none}
-  .switch .track{
-    width:46px;height:26px;border-radius:999px;background:rgba(255,255,255,0.06);
-    position:relative;cursor:pointer;
-  }
-  .switch .knob{
-    width:20px;height:20px;border-radius:50%;
-    background:white;position:absolute;left:3px;top:3px;transition:left .18s ease, background .18s ease;
-  }
-  body.light .switch .track{background:rgba(2,6,23,0.06)}
-  body.light .switch .knob{background:#0f1724}
+  .controls{justify-self:end;display:flex;gap:10px;align-items:center}
+  .switch{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);padding:8px;border-radius:999px}
+  .switch input{display:none}
+  .switch .track{width:48px;height:26px;border-radius:999px;background:rgba(255,255,255,.12);position:relative;cursor:pointer}
+  .switch .knob{width:20px;height:20px;border-radius:50%;background:white;position:absolute;left:3px;top:3px;transition:left .18s ease}
 
-  /* Main left panel (upload, info) */
-  .left {
-    padding:18px;
-    border-radius:12px;
-    background: var(--surface);
-    min-height:320px;
-    display:flex;
-    flex-direction:column;
-    gap:18px;
+  /* Panels */
+  .left,.right{
+    background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:18px;padding:18px;min-height:320px;
   }
 
-  /* Upload area */
-  .upload {
-    border-radius:12px;
-    border: 1px dashed rgba(255,255,255,0.04);
-    padding:20px;
-    display:flex;
-    gap:18px;
-    align-items:center;
-    transition:box-shadow .12s ease, border-color .12s ease, transform .12s ease;
+  /* Upload area — higher contrast & green hover */
+  .upload{
+    border-radius:14px;border:1px dashed rgba(255,255,255,.10);
+    padding:18px;display:flex;gap:16px;align-items:center;
+    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    background:rgba(2,6,23,.2);
   }
-  .upload.dragover{
-    transform: translateY(-4px);
-    border-color: rgba(22,163,74,0.75);
-    box-shadow: 0 8px 40px rgba(16,185,129,0.06);
-  }
-  .upload .u-left{width:160px;height:120px;border-radius:10px;background:var(--card);display:grid;place-items:center;overflow:hidden}
-  .upload .u-left img{max-width:100%;max-height:100%;object-fit:cover}
-  .upload .u-right{flex:1}
-  .upload h2{margin:0;font-size:16px}
-  .upload p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  .upload:hover{border-color:rgba(34,197,94,.8);box-shadow:0 12px 40px rgba(34,197,94,.10)}
+  .upload.dragover{transform:translateY(-3px);border-color:rgba(34,197,94,.9);box-shadow:0 18px 50px rgba(34,197,94,.16)}
+  .u-left{width:170px;height:130px;border-radius:12px;background:var(--card);display:grid;place-items:center;overflow:hidden}
+  .u-left img{width:100%;height:100%;object-fit:cover}
+  .u-right{flex:1}
+  h2{margin:0 0 4px 0;font-size:16px}
+  .subtitle{color:var(--muted);font-size:13px}
 
-  /* File meta & buttons */
-  .meta-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .btn {
-    padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600;
-    background: linear-gradient(90deg,#0369a1,#0ea5e9);
-    color:white;
+  /* Buttons — simple green primary, animated glow on hover */
+  .btn{
+    --ring:0 0 0 0 rgba(34,197,94,.0);
+    border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer;
+    background:linear-gradient(90deg,#16a34a,#22c55e);color:#04140a;
+    transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+    box-shadow:var(--ring);
   }
-  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-  .btn.warn{background: linear-gradient(90deg,#f59e0b,#f97316); color: #07111a}
+  .btn:hover{transform:translateY(-1px); box-shadow:0 8px 30px rgba(34,197,94,.25)}
+  .btn:active{transform:translateY(0)}
 
-  /* Result panel */
-  .right {
-    padding:18px;border-radius:12px;background:var(--card);
-    display:flex;flex-direction:column;gap:16px;min-height:320px;
+  .btn.ghost{
+    background:transparent;color:#cfe9da;border:1px solid rgba(34,197,94,.28);
   }
-  .result-card { padding:16px;border-radius:12px;background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); display:flex;flex-direction:column;gap:12px }
-  .result-row { display:flex;gap:12px;align-items:center }
-  .icon-box { width:72px;height:72px;border-radius:12px;display:grid;place-items:center;font-weight:700;color:white;font-size:28px }
-  .label { font-weight:700;font-size:18px }
-  .subtitle { color:var(--muted); font-size:13px }
+  .btn.ghost:hover{box-shadow:0 8px 26px rgba(34,197,94,.2); border-color:rgba(34,197,94,.45)}
 
-  .tips { color:var(--muted); font-size:13px; margin-top:6px; }
+  /* Right/result card */
+  .result-card{display:flex;flex-direction:column;gap:14px}
+  .result-row{display:flex;gap:12px;align-items:center}
+  .icon-box{width:70px;height:70px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:white;font-size:26px;background:var(--accent)}
+  .label{font-weight:800;font-size:18px}
 
-  /* footer / small notes */
-  .note { color:var(--muted); font-size:13px; margin-top:auto; text-align:center }
+  /* Center & separate Explain/Download */
+  .actions{display:flex;justify-content:center;gap:14px;margin-top:2px}
 
-  /* spinner */
-  .spinner {
-    width:18px;height:18px;border-radius:50%;
-    border:3px solid rgba(255,255,255,0.06);border-top:3px solid rgba(255,255,255,0.18);
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin{to{transform:rotate(360deg)}}
+  .note{color:var(--muted);font-size:12px;text-align:center;margin-top:auto}
 
-  /* responsive */
-  @media (max-width:1120px){
-    .page{grid-template-columns: 1fr 360px}
-  }
-  @media (max-width:920px){
-    .page{grid-template-columns: 1fr; padding:18px}
-    header{flex-direction:column;align-items:flex-start;gap:8px}
-    .right{order:3}
-    .brand .logo{display:inline-grid}
-  }
-
-  /* large-screen "fill" mode */
-  .fill {
-    width: calc(100% - 56px);
-    max-width: 1600px;
-    padding:36px;
-  }
+  /* Responsive */
+  @media (max-width:980px){ .page{grid-template-columns:1fr} header{grid-template-columns:1fr auto} .brand{justify-self:start} }
 </style>
 </head>
 <body>
-  <div class="page fill" id="pageRoot" role="main">
+  <div class="page" id="pageRoot" role="main">
     <header>
+      <div></div>
       <div class="brand">
-        <div class="logo" aria-hidden="true">Eco AI</div>
+        <div class="logo" aria-hidden="true">Eco<br>AI</div>
         <div>
           <h1>Eco AI</h1>
           <p class="sub">Photo-based recycle suggestions — runs locally in your browser.</p>
         </div>
       </div>
-
-      <div class="controls" aria-hidden="false">
+      <div class="controls">
         <label class="switch" title="Toggle light/dark">
           <input id="themeToggle" type="checkbox" aria-label="Toggle light mode"/>
-          <div class="track" id="track">
-            <div class="knob" id="knob"></div>
-          </div>
+          <div class="track"><div class="knob" id="knob"></div></div>
         </label>
-        <div style="font-size:13px;color:var(--muted)">Light / Dark</div>
       </div>
     </header>
 
-    <!-- LEFT: upload + info -->
-    <section class="left" aria-label="Upload and instructions">
-      <div id="uploader" class="upload" tabindex="0" aria-describedby="uploaderHelp">
+    <!-- LEFT -->
+    <section class="left" aria-label="Upload">
+      <div id="uploader" class="upload" tabindex="0">
         <div class="u-left" id="uLeft">
-          <!-- preview image is placed here -->
           <div id="previewPlaceholder" style="color:var(--muted);text-align:center;padding:12px">
             <svg width="52" height="52" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3" y="7" width="18" height="12" rx="2" fill="rgba(255,255,255,0.03)"></rect>
-              <path d="M8 11l2.5 3L14 10l4 6H6l2-5z" fill="rgba(255,255,255,0.06)"></path>
+              <rect x="3" y="7" width="18" height="12" rx="2" fill="rgba(255,255,255,0.06)"></rect>
+              <path d="M8 11l2.5 3L14 10l4 6H6l2-5z" fill="rgba(255,255,255,0.18)"></path>
             </svg>
             <div style="margin-top:8px;font-size:13px;color:var(--muted)">No image</div>
           </div>
@@ -250,75 +160,50 @@
 
         <div class="u-right">
           <h2 id="uploaderTitle">Drag & drop or click to choose an image</h2>
-          <p id="uploaderHelp" class="sub">Take a clear photo of the item you want identified. Crop to the object for best results.</p>
+          <div class="subtitle" id="uploaderHelp">Take a clear photo of the item you want identified.</div>
+
+          <div style="height:10px"></div>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <label for="fileInput" class="btn" id="chooseBtn" style="cursor:pointer">Choose image</label>
+            <button id="pasteBtn" class="btn ghost">Paste</button>
+            <button id="clearBtn" class="btn ghost" style="display:none">Clear</button>
+
+            <div style="margin-left:auto;text-align:right">
+              <div id="fileMeta" class="subtitle">No file selected</div>
+              <div id="modelStatus" class="subtitle" style="font-size:12px;margin-top:4px">Loading model…</div>
+            </div>
+          </div>
 
           <div style="height:12px"></div>
 
-          <div class="meta-row">
-            <div style="display:flex;gap:8px;align-items:center">
-              <label for="fileInput" class="btn" id="chooseBtn" style="cursor:pointer">Choose image</label>
-              <button id="pasteBtn" class="btn ghost" title="Paste image from clipboard">Paste</button>
-              <button id="clearBtn" class="btn ghost" style="display:none">Clear</button>
-            </div>
-
-            <div style="text-align:right">
-              <div id="fileMeta" class="subtitle">No file selected</div>
-              <div id="modelStatus" class="subtitle" style="font-size:12px;margin-top:6px">Loading model…</div>
-            </div>
-          </div>
-
-          <div style="height:8px"></div>
-
-          <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-            <button id="classifyBtn" class="btn warn" disabled>Classify</button>
-            <div id="classifySpinner" style="display:none"><div class="spinner" aria-hidden="true"></div></div>
-          </div>
-
-          <div style="height:8px"></div>
-
-          <div style="margin-top:10px;color:var(--muted);font-size:13px">
-            <strong>Notes:</strong>
-            <ul style="margin:6px 0 0 18px;color:var(--muted);padding:0">
-              <li>Model runs locally — no images are uploaded to a server.</li>
-              <li>If you trained the model with exact labels, add a <code>labels.json</code> file in the same folder as <code>model.json</code> (one array of strings).</li>
-            </ul>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button id="classifyBtn" class="btn" disabled>Recycle!</button>
+            <div id="classifySpinner" style="display:none"><div style="width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top:3px solid rgba(34,197,94,.8);animation:spin 1s linear infinite"></div></div>
           </div>
         </div>
-      </div>
-
-      <!-- below uploader: optional advanced / troubleshooting -->
-      <div style="margin-top:12px;color:var(--muted);font-size:13px">
-        <details style="color:var(--muted)">
-          <summary style="cursor:pointer;color:var(--muted)">Advanced / Troubleshooting</summary>
-          <div style="margin-top:8px">
-            <p style="margin:6px 0;color:var(--muted)">If the model fails to load: check CORS on your GitHub Pages hosting and confirm <code>model.json</code> is public and reachable.</p>
-            <p style="margin:6px 0;color:var(--muted)">To change the model URL or label fallbacks, edit the <code>MODEL_URL</code> and <code>DEFAULT_LABELS</code> constants in the script below.</p>
-          </div>
-        </details>
       </div>
     </section>
 
-    <!-- RIGHT: results -->
-    <aside class="right" aria-label="Results and tips">
+    <!-- RIGHT -->
+    <aside class="right" aria-label="Results">
       <div class="result-card" id="resultCard" aria-live="polite">
         <div class="result-row">
-          <div id="resultIcon" class="icon-box" style="background:var(--accent);">R</div>
+          <div id="resultIcon" class="icon-box">R</div>
           <div style="flex:1">
             <div class="label" id="resultLabel">Awaiting image</div>
-            <div class="subtitle" id="resultSubtitle">Upload and press classify to get a result.</div>
+            <div class="subtitle" id="resultSubtitle">Upload and press Recycle! to get a result.</div>
           </div>
         </div>
 
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div style="flex:1">
-            <div class="subtitle" id="resultConfidence" style="color:var(--muted)">Confidence: —</div>
-            <div class="tips" id="resultTips">Tip: use a plain background and crop close to the item for higher accuracy.</div>
-          </div>
+        <div>
+          <div class="subtitle" id="resultConfidence">Confidence: —</div>
+          <div class="subtitle" id="resultTips" style="margin-top:6px">Tip: use a plain background and crop close to the item.</div>
+        </div>
 
-          <div style="width:160px;text-align:right">
-            <button id="explainBtn" class="btn ghost" title="Show explanation (if available)">Explain</button>
-            <button id="downloadBtn" class="btn ghost" title="Download result snapshot">Download</button>
-          </div>
+        <div class="actions">
+          <button id="explainBtn" class="btn ghost">Explain</button>
+          <button id="downloadBtn" class="btn ghost">Download</button>
         </div>
       </div>
 
@@ -327,33 +212,31 @@
   </div>
 
 <script>
-/* ======================================================
-   Eco AI — front-end script
-   - loads a TF.js model from MODEL_URL
-   - attempts to fetch labels.json from same folder
-   - auto-detects input size from model if possible
-   - provides upload/drag/paste/preview + classify flow
-   ====================================================== */
+/* ======= same JS with small text tweaks ======= */
+const MODEL_URL = 'https://jonashruda.github.io/Eco-AI/model.json';
+const LABELS_URL = MODEL_URL.replace(/\/[^\/]*$/, '/labels.json');
+const DEFAULT_LABELS = ['Recyclable', 'Non-recyclable', 'Unknown'];
 
-const MODEL_URL = 'https://jonashruda.github.io/Eco-AI/model.json'; // your model
-const LABELS_URL = MODEL_URL.replace(/\/[^\/]*$/, '/labels.json'); // attempts labels.json next to model.json
-const DEFAULT_LABELS = ['Recyclable', 'Non-recyclable', 'Unknown']; // fallback labels; edit if your model has different classes
-
-// UI elements
-const pageRoot = document.getElementById('pageRoot');
 const themeToggle = document.getElementById('themeToggle');
 const knob = document.getElementById('knob');
 const uploader = document.getElementById('uploader');
 const chooseBtn = document.getElementById('chooseBtn');
 const pasteBtn = document.getElementById('pasteBtn');
-const fileInput = createHiddenFileInput();
-const uLeft = document.getElementById('uLeft');
-const previewPlaceholder = document.getElementById('previewPlaceholder');
-const fileMeta = document.getElementById('fileMeta');
 const clearBtn = document.getElementById('clearBtn');
 const classifyBtn = document.getElementById('classifyBtn');
 const classifySpinner = document.getElementById('classifySpinner');
 
+const fileInput = (() => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', () => handleFile(input.files[0]));
+  return input;
+})();
+
+const uLeft = document.getElementById('uLeft');
+const previewPlaceholder = document.getElementById('previewPlaceholder');
+const fileMeta = document.getElementById('fileMeta');
 const modelStatus = document.getElementById('modelStatus');
 const modelNameEl = document.getElementById('modelName');
 
@@ -365,414 +248,162 @@ const resultTips = document.getElementById('resultTips');
 const explainBtn = document.getElementById('explainBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 
-let currentFile = null;
-let previewImageEl = null;
-let model = null;
-let labels = DEFAULT_LABELS.slice();
-let modelInputShape = [224,224]; // fallback
-let isModelLoaded = false;
+let currentFile=null, previewImageEl=null, model=null, labels=DEFAULT_LABELS.slice();
+let modelInputShape=[224,224], isModelLoaded=false;
 
-/* ----------------- Theme toggle ----------------- */
-(function initTheme(){
-  // default: dark mode (no body.light)
-  themeToggle.checked = false;
-  themeToggle.addEventListener('change', () => {
-    if (themeToggle.checked) {
-      document.body.classList.add('light');
-      knob.style.left = '23px';
-    } else {
-      document.body.classList.remove('light');
-      knob.style.left = '3px';
-    }
-  });
-  // position knob initially
-  knob.style.left = '3px';
-})();
+/* Light toggle only moves knob for now (kept minimal) */
+knob.style.left='3px';
+themeToggle.addEventListener('change',()=>{ knob.style.left = themeToggle.checked?'23px':'3px'; });
 
-/* ----------------- file input / paste helpers ----------------- */
-function createHiddenFileInput() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  input.addEventListener('change', () => handleFile(input.files[0]));
-  return input;
-}
-
-chooseBtn.addEventListener('click', () => fileInput.click());
-pasteBtn.addEventListener('click', onPasteButton);
-clearBtn.addEventListener('click', clearSelection);
-
-function onPasteButton(){
-  // attempt to read clipboard (image)
-  navigator.clipboard.read().then(items => {
-    for (const item of items) {
-      for (const type of item.types) {
-        if (type.startsWith('image/')) {
-          return item.getType(type).then(blob => {
-            handleFile(new File([blob], 'pasted-image.png', {type: type}));
-          });
+chooseBtn.addEventListener('click',()=>fileInput.click());
+pasteBtn.addEventListener('click', async () => {
+  try{
+    const items = await navigator.clipboard.read();
+    for (const it of items){
+      for (const t of it.types){
+        if (t.startsWith('image/')){
+          const blob = await it.getType(t);
+          return handleFile(new File([blob],'pasted-image.png',{type:t}));
         }
       }
     }
     alert('No image found in clipboard.');
-  }).catch(err => {
-    console.warn('Clipboard read failed', err);
-    alert('Paste not supported in this browser. Try Ctrl+V in a text field or use Choose image.');
-  });
-}
+  }catch(e){ alert('Paste not supported in this browser.'); }
+});
+clearBtn.addEventListener('click', clearSelection);
 
-/* Drag & drop */
-['dragenter','dragover'].forEach(e => {
-  uploader.addEventListener(e, ev => {
-    ev.preventDefault(); ev.stopPropagation();
-    uploader.classList.add('dragover');
-  });
+['dragenter','dragover'].forEach(evName=>{
+  uploader.addEventListener(evName,e=>{e.preventDefault();e.stopPropagation();uploader.classList.add('dragover')});
 });
-['dragleave','drop','dragend'].forEach(e => {
-  uploader.addEventListener(e, ev => {
-    ev.preventDefault(); ev.stopPropagation();
-    uploader.classList.remove('dragover');
-  });
+['dragleave','drop','dragend'].forEach(evName=>{
+  uploader.addEventListener(evName,e=>{e.preventDefault();e.stopPropagation();uploader.classList.remove('dragover')});
 });
-uploader.addEventListener('drop', ev => {
-  const dt = ev.dataTransfer;
-  if (dt && dt.files && dt.files.length) {
-    handleFile(dt.files[0]);
+uploader.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0]; if (f) handleFile(f);
+});
+uploader.addEventListener('click',()=>fileInput.click());
+window.addEventListener('paste', ev => {
+  const items = ev.clipboardData?.items || [];
+  for (const item of items){
+    if (item.type.indexOf('image')!==-1){
+      const blob = item.getAsFile(); if (blob) handleFile(new File([blob],'pasted-image.png',{type:blob.type}));
+      ev.preventDefault(); return;
+    }
   }
 });
-uploader.addEventListener('click', () => fileInput.click());
 
-/* Handle a selected file */
-function handleFile(file) {
-  if (!file) return;
-  if (!file.type || !file.type.startsWith('image/')) {
-    alert('Please choose an image file.');
-    return;
-  }
-  currentFile = file;
-  fileMeta.textContent = `${file.name} · ${(file.size/1024|0)} KB`;
+function handleFile(file){
+  if (!file || !file.type.startsWith('image/')) return alert('Please choose an image file.');
+  currentFile=file;
+  fileMeta.textContent=`${file.name} · ${(file.size/1024|0)} KB`;
   showPreview(file);
-  classifyBtn.disabled = false;
-  clearBtn.style.display = 'inline-block';
+  classifyBtn.disabled=false;
+  clearBtn.style.display='inline-block';
   resetResult();
 }
-
-/* showPreview: put an <img> inside uLeft */
-function showPreview(file) {
-  // remove placeholder
-  previewPlaceholder.style.display = 'none';
-  // remove previous image if any
-  if (previewImageEl) {
-    previewImageEl.remove();
-    previewImageEl = null;
-  }
-  const img = document.createElement('img');
-  img.alt = file.name || 'preview';
-  img.style.width = '100%';
-  img.style.height = '100%';
-  img.style.objectFit = 'cover';
-  uLeft.appendChild(img);
-  previewImageEl = img;
-  img.src = URL.createObjectURL(file);
-  img.onload = () => {
-    URL.revokeObjectURL(img.src);
-  };
-}
-
-/* Clear selection */
-function clearSelection(){
-  currentFile = null;
-  fileMeta.textContent = 'No file selected';
-  classifyBtn.disabled = true;
-  clearBtn.style.display = 'none';
+function showPreview(file){
+  previewPlaceholder.style.display='none';
   if (previewImageEl) previewImageEl.remove();
-  previewImageEl = null;
-  previewPlaceholder.style.display = 'block';
-  resetResult();
+  const img=document.createElement('img');
+  img.alt=file.name||'preview'; uLeft.appendChild(img); previewImageEl=img;
+  img.src=URL.createObjectURL(file);
+  img.onload=()=>URL.revokeObjectURL(img.src);
 }
-
-/* Reset result display */
+function clearSelection(){
+  currentFile=null; fileMeta.textContent='No file selected'; classifyBtn.disabled=true;
+  clearBtn.style.display='none'; if (previewImageEl) previewImageEl.remove(); previewImageEl=null;
+  previewPlaceholder.style.display='grid'; resetResult();
+}
 function resetResult(){
-  resultIcon.style.background = 'var(--accent)';
-  resultIcon.textContent = 'R';
-  resultLabel.textContent = 'Awaiting image';
-  resultSubtitle.textContent = 'Upload and press classify to get a result.';
-  resultConfidence.textContent = 'Confidence: —';
-  resultTips.textContent = 'Tip: use a plain background and crop close to the item for higher accuracy.';
+  resultIcon.style.background='var(--accent)'; resultIcon.textContent='R';
+  resultLabel.textContent='Awaiting image';
+  resultSubtitle.textContent='Upload and press Recycle! to get a result.';
+  resultConfidence.textContent='Confidence: —';
+  resultTips.textContent='Tip: use a plain background and crop close to the item.';
 }
 
-/* ----------------- Model loading ----------------- */
-
-/*
-  Steps:
-  1) load model via tf.loadLayersModel(MODEL_URL)
-  2) attempt to fetch labels.json from LABELS_URL
-  3) detect input size from model.inputs[0].shape if possible
-*/
-async function initModel(){
-  try {
-    modelStatus.textContent = 'Loading model…';
+/* Model */
+(async function initModel(){
+  try{
+    modelStatus.textContent='Loading model…';
     model = await tf.loadLayersModel(MODEL_URL);
-    isModelLoaded = true;
-    modelStatus.textContent = 'Model loaded';
-    modelNameEl.textContent = (model && model.name) ? model.name : 'local model';
-
-    // detect input shape (common formats: [null,h,w,channels] or [null,channels,h,w])
-    try {
-      const inShape = model.inputs && model.inputs.length ? model.inputs[0].shape : null;
-      if (inShape && inShape.length >= 3) {
-        // find height & width
-        // common: [null, h, w, c]
-        if (inShape.length === 4) {
-          modelInputShape = [inShape[1] || 224, inShape[2] || 224];
-        } else if (inShape.length === 3) {
-          modelInputShape = [inShape[0] || 224, inShape[1] || 224];
-        }
-      }
-      console.log('Detected model input shape:', modelInputShape, 'from', inShape);
-    } catch(e){
-      console.warn('Could not detect model input shape, using default 224x224', e);
+    isModelLoaded=true;
+    modelStatus.textContent='Model loaded';
+    modelNameEl.textContent = model?.name || 'local model';
+    const inShape = model.inputs?.[0]?.shape || null;
+    if (inShape && inShape.length>=3){
+      if (inShape.length===4) modelInputShape=[inShape[1]||224,inShape[2]||224];
+      else modelInputShape=[inShape[0]||224,inShape[1]||224];
     }
+  }catch(e){ isModelLoaded=false; modelStatus.textContent='Model failed to load'; console.error(e); }
 
-  } catch(err) {
-    console.error('Model load failed', err);
-    isModelLoaded = false;
-    modelStatus.textContent = 'Model failed to load (check CORS / URL)';
-    alert('Model failed to load. Open console for details. Confirm model.json is reachable and CORS-enabled.');
-  }
-
-  // attempt to load labels.json next to model.json
-  try {
+  try{
     const resp = await fetch(LABELS_URL);
-    if (resp.ok) {
-      const list = await resp.json();
-      if (Array.isArray(list) && list.length > 0) {
-        labels = list;
-        console.log('Loaded labels.json', labels);
-      } else {
-        console.warn('labels.json is not an array; using default labels.');
-      }
-    } else {
-      console.info('No labels.json found; using fallback labels.');
-    }
-  } catch(e) {
-    console.info('Could not load labels.json; using fallback labels.', e);
-  }
-
-  // reflect labels in UI (for debugging)
-  modelStatus.textContent = (isModelLoaded ? 'Model loaded' : 'Model unavailable') + ' • ' + labels.length + ' label(s)';
-}
-initModel();
-
-/* ----------------- Classification flow ----------------- */
-
-/* Helper: create an offscreen image and return a tensor resized to modelInputShape */
-async function fileToInputTensor(file) {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        // create tensor from image
-        let t = tf.browser.fromPixels(img);
-        // if model expects different channel order/normalization, adjust here
-        // resize to [h,w]
-        const [h,w] = modelInputShape;
-        t = tf.image.resizeBilinear(t, [h,w]);
-        // convert to float and normalize to [0,1]
-        t = t.toFloat().div(255.0);
-        // if model expects batch dimension
-        t = t.expandDims(0);
-        res(t);
-      } catch(e){
-        rej(e);
-      }
-    };
-    img.onerror = rej;
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-/* Run classification */
-async function classifyCurrentFile(){
-  if (!currentFile) return;
-  if (!isModelLoaded || !model) {
-    alert('Model not loaded yet.');
-    return;
-  }
-
-  // UI state
-  classifySpinner.style.display = 'inline-block';
-  classifyBtn.disabled = true;
-  resultLabel.textContent = 'Classifying…';
-  resultSubtitle.textContent = 'Running model locally';
-  resultConfidence.textContent = 'Confidence: —';
-
-  try {
-    const inputTensor = await fileToInputTensor(currentFile);
-    // run predict
-    let logits = model.predict(inputTensor);
-    // logits could be tensor or array — unify
-    if (Array.isArray(logits)) logits = logits[0];
-    // ensure we get a flat array
-    const data = await logits.data();
-    // cleanup
-    inputTensor.dispose();
-    if (logits.dispose) logits.dispose();
-
-    // find argmax
-    let maxIdx = 0;
-    let maxVal = data[0];
-    for (let i=1;i<data.length;i++){
-      if (data[i] > maxVal) { maxVal = data[i]; maxIdx = i; }
-    }
-
-    // softmax interpretation: if your model returns logits, convert to probabilities
-    // but many TF models already return probabilities. To be safe, compute softmax:
-    const probs = softmax(Array.from(data));
-    const probMax = probs[maxIdx];
-
-    // prepare labels (guard in case labels length mismatch)
-    let label = labels[maxIdx] || `Class ${maxIdx}`;
-    const confidencePct = (probMax * 100).toFixed(1);
-
-    // display result
-    resultLabel.textContent = label;
-    resultSubtitle.textContent = `Class index: ${maxIdx}`;
-    resultConfidence.textContent = `Confidence: ${confidencePct}%`;
-    resultTips.textContent = getTipsForLabel(label, maxIdx, probMax);
-
-    // colorize icon by heuristic: if label string contains 'recycl' -> green; 'non' or 'no' -> red; else orange
-    const lblLow = label.toLowerCase();
-    if (lblLow.includes('recycl')) {
-      resultIcon.style.background = 'var(--accent)';
-      resultIcon.textContent = 'R';
-    } else if (lblLow.includes('non') || lblLow.includes('not') || lblLow.includes('no')) {
-      resultIcon.style.background = 'var(--danger)';
-      resultIcon.textContent = 'X';
-    } else {
-      resultIcon.style.background = 'var(--warn)';
-      resultIcon.textContent = '!';
-    }
-
-  } catch(err) {
-    console.error('Classification error', err);
-    alert('Error during classification — check console.');
-    resultLabel.textContent = 'Error';
-    resultSubtitle.textContent = err.message || String(err);
-    resultTips.textContent = 'Check console for details.';
-  } finally {
-    classifySpinner.style.display = 'none';
-    classifyBtn.disabled = false;
-  }
-}
-
-/* Softmax helper */
-function softmax(arr){
-  const max = Math.max(...arr);
-  const exps = arr.map(v => Math.exp(v - max));
-  const sum = exps.reduce((a,b)=>a+b, 0);
-  return exps.map(e => e / sum);
-}
-
-/* Simple tips mapping. Edit as desired. */
-function getTipsForLabel(label, idx, prob){
-  const low = label.toLowerCase();
-  if (low.includes('recycl')) return 'Likely recyclable. Rinse and collapse (if applicable) before recycling.';
-  if (low.includes('glass')) return 'Glass is typically recyclable — check local rules.';
-  if (low.includes('plastic')) return 'Plastic — look for local recycling numbers and rinse if dirty.';
-  if (low.includes('non') || low.includes('not') || low.includes('trash') || low.includes('other')) return 'Likely not accepted in curbside recycling. Use general waste.';
-  if (prob < 0.5) return 'Low confidence. Try a clearer photo or crop closer to the item.';
-  return 'If unsure, check local recycling rules.';
-}
-
-/* ----------------- Buttons ----------------- */
-classifyBtn.addEventListener('click', classifyCurrentFile);
-
-/* explain & download (basic placeholders) */
-explainBtn.addEventListener('click', () => {
-  alert('Explanation feature not implemented yet. If you want SHAP/LRP-style explanations, I can add a server-side or in-browser implementation.');
-});
-downloadBtn.addEventListener('click', async () => {
-  // create a snapshot canvas of left panel + result and download as PNG
-  try {
-    const w = 800, h = 500;
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-
-    // fill background
-    ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#0b1220';
-    ctx.fillRect(0,0,w,h);
-
-    // draw preview image if present
-    if (previewImageEl) {
-      // draw previewImageEl into canvas with cover behavior
-      ctx.drawImage(previewImageEl, 20, 20, 360, 360);
-    } else {
-      // placeholder box
-      ctx.fillStyle = '#0f1724';
-      ctx.fillRect(20,20,360,360);
-    }
-
-    // write text results
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Inter, sans-serif';
-    ctx.fillText('Eco AI result', 400, 60);
-    ctx.font = '16px Inter, sans-serif';
-    ctx.fillStyle = '#d1d5db';
-    ctx.fillText(resultLabel.textContent || '-', 400, 100);
-    ctx.fillText((resultConfidence.textContent || '-'), 400, 130);
-    // download
-    const data = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = data;
-    a.download = 'ecoai-result.png';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } catch(e){
-    console.error('Download snapshot failed', e);
-    alert('Download failed. See console.');
-  }
-});
-
-/* ----------------- Utility: on page paste (Ctrl+V) to paste image if available ----------------- */
-window.addEventListener('paste', (ev) => {
-  const items = ev.clipboardData && ev.clipboardData.items;
-  if (!items) return;
-  for (const item of items) {
-    if (item.type.indexOf('image') !== -1) {
-      const blob = item.getAsFile();
-      if (blob) handleFile(new File([blob], 'pasted-image.png', {type: blob.type}));
-      ev.preventDefault();
-      return;
-    }
-  }
-});
-
-/* ----------------- Boot: model readiness and small UX niceties ----------------- */
-(function boot(){
-  // indicate when model is loaded & enable classify button if file present
-  const checkInterval = setInterval(() => {
-    if (isModelLoaded) {
-      modelStatus.textContent = 'Model ready • ' + labels.length + ' label(s)';
-      clearInterval(checkInterval);
-    }
-  }, 300);
-
-  // keyboard accessibility: space/enter on uploader opens file picker
-  uploader.addEventListener('keydown', (ev) => {
-    if (ev.code === 'Enter' || ev.code === 'Space') fileInput.click();
-  });
-
-  // when user selects file via system picker -> fileInput is attached to hidden input
-  document.body.appendChild(fileInput);
+    if (resp.ok){ const list=await resp.json(); if (Array.isArray(list)&&list.length) labels=list; }
+  }catch{}
+  if (isModelLoaded) modelStatus.textContent='Model ready • '+labels.length+' label(s)';
 })();
 
+function softmax(arr){ const m=Math.max(...arr); const ex=arr.map(v=>Math.exp(v-m)); const s=ex.reduce((a,b)=>a+b,0); return ex.map(e=>e/s); }
+
+async function fileToInputTensor(file){
+  return new Promise((res,rej)=>{
+    const img=new Image(); img.onload=()=>{
+      try{
+        let t=tf.browser.fromPixels(img);
+        t=tf.image.resizeBilinear(t, modelInputShape).toFloat().div(255).expandDims(0);
+        res(t);
+      }catch(e){ rej(e); }
+    };
+    img.onerror=rej; img.src=URL.createObjectURL(file);
+  });
+}
+
+async function classifyCurrentFile(){
+  if (!currentFile) return;
+  if (!isModelLoaded || !model) return alert('Model not loaded yet.');
+
+  classifySpinner.style.display='inline-block'; classifyBtn.disabled=true;
+  resultLabel.textContent='Classifying…'; resultSubtitle.textContent='Running model locally'; resultConfidence.textContent='—';
+
+  try{
+    const input=await fileToInputTensor(currentFile);
+    let out=model.predict(input); if (Array.isArray(out)) out=out[0];
+    const data=Array.from(await out.data());
+    input.dispose(); out.dispose?.();
+
+    let maxIdx=0, maxVal=data[0]; for (let i=1;i<data.length;i++){ if (data[i]>maxVal){ maxVal=data[i]; maxIdx=i; } }
+    const probs=softmax(data); const p=probs[maxIdx]; const label=labels[maxIdx]||`Class ${maxIdx}`;
+
+    resultLabel.textContent=label;
+    resultSubtitle.textContent=`Class index: ${maxIdx}`;
+    resultConfidence.textContent=`Confidence: ${(p*100).toFixed(1)}%`;
+    const low=label.toLowerCase();
+    if (low.includes('recycl')){ resultIcon.style.background='var(--accent)'; resultIcon.textContent='R'; resultTips.textContent='Likely recyclable. Rinse and flatten if possible.'; }
+    else if (low.includes('non')||low.includes('not')||low.includes('trash')){ resultIcon.style.background='var(--danger)'; resultIcon.textContent='X'; resultTips.textContent='Likely not accepted curbside. Use general waste.'; }
+    else { resultIcon.style.background='var(--warn)'; resultIcon.textContent='!'; resultTips.textContent= p<.5 ? 'Low confidence. Try a clearer photo.' : 'Check local recycling rules.'; }
+  }catch(e){
+    console.error(e); resultLabel.textContent='Error'; resultSubtitle.textContent=e.message||String(e);
+  }finally{
+    classifySpinner.style.display='none'; classifyBtn.disabled=false;
+  }
+}
+document.getElementById('classifyBtn').addEventListener('click', classifyCurrentFile);
+
+/* Explain & Download (same placeholders) */
+explainBtn.addEventListener('click',()=>alert('Explanation feature not implemented yet.'));
+downloadBtn.addEventListener('click', async () => {
+  try{
+    const w=820,h=520; const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext('2d'); ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,w,h);
+    if (previewImageEl) ctx.drawImage(previewImageEl,20,20,360,360); else { ctx.fillStyle='#0f1724'; ctx.fillRect(20,20,360,360); }
+    ctx.fillStyle='#fff'; ctx.font='20px Inter, sans-serif'; ctx.fillText('Eco AI result', 400, 60);
+    ctx.font='16px Inter, sans-serif'; ctx.fillStyle='#cde6d6';
+    ctx.fillText(resultLabel.textContent||'-', 400, 100);
+    ctx.fillText(resultConfidence.textContent||'-', 400, 130);
+    const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download='ecoai-result.png'; a.click();
+  }catch(e){ console.error(e); alert('Download failed.'); }
+});
 </script>
 </body>
 </html>
-
