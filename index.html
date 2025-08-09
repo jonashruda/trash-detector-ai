@@ -335,7 +335,7 @@
    - provides upload/drag/paste/preview + classify flow
    ====================================================== */
 
-const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json'; // your model
+const MODEL_URL = 'https://jonashruda.github.io/Eco-AI/model.json'; // your model
 const LABELS_URL = MODEL_URL.replace(/\/[^\/]*$/, '/labels.json'); // attempts labels.json next to model.json
 const DEFAULT_LABELS = ['Recyclable', 'Non-recyclable', 'Unknown']; // fallback labels; edit if your model has different classes
 
@@ -775,3 +775,4 @@ window.addEventListener('paste', (ev) => {
 </script>
 </body>
 </html>
+
