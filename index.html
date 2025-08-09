@@ -1,274 +1,273 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Trash Classifier</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
-    <style>
-        .glow-button {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            background-color: #22c55e;
-        }
-        .glow-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
-        }
-        .glow-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.2),
-                transparent
-            );
-            transition: 0.5s;
-        }
-        .glow-button:hover::before {
-            left: 100%;
-        }
-        .file-input::-webkit-file-upload-button {
-            @apply text-white px-4 py-2 rounded-lg glow-button;
-            background-color: #22c55e;
-        }
-        .file-input:dark::-webkit-file-upload-button {
-            @apply text-gray-200;
-            background-color: #16a34a;
-        }
-        body {
-            background-color: #111827;
-        }
-        .dark body {
-            background-color: #f3f4f6;
-        }
-        .container-bg {
-            background-color: #1f2937;
-            position: relative;
-        }
-        .dark .container-bg {
-            background-color: #ffffff;
-        }
-        .slider-container {
-            width: 60px;
-            height: 30px;
-            background-color: #374151;
-            border-radius: 9999px;
-            position: relative;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .dark .slider-container {
-            background-color: #d1d5db;
-        }
-        .slider {
-            width: 26px;
-            height: 26px;
-            background-color: #22c55e;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s ease;
-        }
-        .dark .slider {
-            transform: translateX(30px);
-        }
-        .rounded-square {
-            width: 100%;
-            height: 16rem;
-            border-radius: 1.5rem;
-            border: 2px solid #6b7280;
-        }
-        .dark .rounded-square {
-            border-color: #d1d5db;
-        }
-        .beta-label {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #22c55e;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .recycling-tips {
-            max-width: 100%;
-            overflow-y: auto;
-            max-height: 100px;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Trash Detector AI</title>
+
+<!-- Google font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#16a34a; /* green */
+    --accent-2:#f59e0b; /* orange */
+    --danger:#ef4444; /* red */
+    --glass: rgba(255,255,255,0.6);
+    --radius:14px;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#eef2ff 0%, var(--bg) 60%);
+    padding:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+  }
+  .wrapper{
+    width:100%;
+    max-width:980px;
+    background:var(--card);
+    border-radius:20px;
+    box-shadow: 0 8px 30px rgba(16,24,40,0.08);
+    padding:28px;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:22px;
+  }
+  header{
+    grid-column:1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{display:flex;gap:14px;align-items:center;}
+  .logo{
+    width:56px;height:56px;border-radius:12px;
+    background:linear-gradient(135deg,#10b981,#34d399);
+    color:white;display:grid;place-items:center;
+    font-weight:700;font-size:20px;
+  }
+  h1{margin:0;font-size:20px}
+  p.lead{margin:0;color:var(--muted); font-size:14px}
+
+  .upload{
+    border: 1px dashed rgba(15,23,42,0.06);
+    border-radius:12px;
+    padding:18px;text-align:center;
+    transition:all .18s ease;
+  }
+  .upload.dragover{
+    border-color: var(--accent);
+    transform:translateY(-2px);
+    box-shadow: 0 8px 30px rgba(16,185,129,0.08);
+  }
+  .upload input[type=file]{display:none}
+  .upload .hint{color:var(--muted); margin-top:8px; font-size:14px}
+  .btn{
+    padding:10px 16px;
+    background:linear-gradient(90deg,#0369a1,#0ea5e9);
+    color:white;border-radius:10px;
+    cursor:pointer;border:0;font-weight:600;
+    margin-top:12px;
+  }
+  .preview-wrap{display:flex;flex-direction:column;gap:14px;}
+  .preview{
+    background:var(--glass);border-radius:12px;
+    padding:8px;min-height:220px;
+    display:grid;place-items:center;overflow:hidden;
+  }
+  .preview img{
+    max-width:100%;max-height:100%;
+    border-radius:10px;object-fit:contain;
+  }
+  .meta{display:flex;justify-content:space-between;align-items:center;}
+  .controls{display:flex;gap:10px;align-items:center;}
+  .classify{
+    padding:10px 14px;background:#0f172a;color:white;
+    border-radius:10px;border:0;cursor:pointer;font-weight:600;
+  }
+  .classify[disabled]{opacity:.5;cursor:default}
+
+  .result-card{
+    background:white;border-radius:14px;
+    padding:18px;box-shadow: 0 8px 30px rgba(2,6,23,0.04);
+  }
+  .result-header{display:flex;gap:12px;align-items:center}
+  .result-icon{
+    width:52px;height:52px;border-radius:12px;
+    display:grid;place-items:center;font-weight:700;color:white;
+    font-size:24px;
+  }
+  .result-sub{color:var(--muted);margin-top:6px;font-size:13px}
+  .tips{margin-top:12px;font-size:13px;color:var(--muted)}
+
+  .spinner{
+    border:3px solid rgba(15,23,42,0.08);
+    border-top:3px solid rgba(15,23,42,0.6);
+    border-radius:50%;width:18px;height:18px;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media (max-width:880px){
+    .wrapper{grid-template-columns:1fr; padding:18px}
+    .result-card{order:3}
+  }
+</style>
 </head>
-<body class="min-h-screen flex items-center justify-center transition-colors duration-300">
-    <div class="w-full max-w-5xl mx-4 p-6 container-bg rounded-lg shadow-lg flex flex-col items-center">
-        <div class="beta-label">Beta</div>
-        <h1 class="text-3xl font-bold text-center text-gray-100 dark:text-gray-800 mb-4">Recycle-AI</h1>
-        <p class="text-center text-gray-400 dark:text-gray-600 mb-6">Upload an image to identify recyclable materials and get recycling tips</p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-6">
-            <div class="rounded-square flex flex-col items-center justify-center p-4">
-                <label for="image-upload" class="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-500 dark:border-gray-300 rounded-lg cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors">
-                    <input type="file" accept="image/*" id="image-upload" class="hidden" onchange="previewImage(event)" />
-                    <span id="upload-text" class="text-gray-400 dark:text-gray-600 text-center">Drag and drop or click to upload</span>
-                </label>
-                <div id="image-preview" class="mt-4 hidden">
-                    <img id="preview-img" class="max-w-full max-h-40 rounded-lg" alt="Image Preview" />
-                </div>
-            </div>
-
-            <div class="rounded-square flex flex-col items-center justify-center p-4">
-                <div id="output" class="text-center w-full">
-                    <div id="result" class="text-lg font-semibold text-green-400 dark:text-green-600 mb-2">Awaiting Classification</div>
-                    <div id="recycling-tips" class="text-gray-300 dark:text-gray-600 recycling-tips"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex justify-center mb-6">
-            <button id="classify-btn" class="glow-button text-white px-8 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>Classify</button>
-        </div>
-
-        <div class="flex flex-col items-center">
-            <span class="text-gray-400 dark:text-gray-600 mb-2">Theme</span>
-            <div id="theme-toggle" class="slider-container">
-                <div class="slider"></div>
-            </div>
-        </div>
+<body>
+<main class="wrapper">
+  <header>
+    <div class="brand">
+      <div class="logo">TD</div>
+      <div>
+        <h1>Trash Detector AI</h1>
+        <p class="lead">Upload a photo to check recyclability.</p>
+      </div>
     </div>
+    <div style="color:var(--muted);font-size:13px">Beta</div>
+  </header>
 
-    <script>
-        const MODEL_URL = 'https://jonashruda.github.io/trash-detector-ai/model.json';
+  <!-- Upload -->
+  <section>
+    <label id="uploadLabel" class="upload" for="fileInput">
+      <input id="fileInput" type="file" accept="image/*" />
+      <div>
+        <strong>Drag & drop an image</strong>
+        <div class="hint">or click to choose</div>
+      </div>
+    </label>
+    <div style="height:14px"></div>
+    <div class="preview-wrap">
+      <div class="preview" id="preview">
+        <div id="previewEmpty" style="color:var(--muted)">No image selected</div>
+        <img id="previewImg" src="" alt="" style="display:none" />
+      </div>
+      <div class="meta">
+        <div style="font-size:13px;color:var(--muted)" id="fileMeta">No file</div>
+        <div class="controls">
+          <button id="clearBtn" class="btn" style="background:#efefef;color:#0f172a;display:none">Clear</button>
+          <button id="classifyBtn" class="classify" disabled>Classify</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        let model;
-        const labels = ["Cardboard", "Glass", "metal", "Paper", "Plastic", "Trash"];
+  <!-- Result -->
+  <aside>
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div id="resultIcon" class="result-icon" style="background:var(--accent)">✓</div>
+        <div>
+          <div id="resultTitle" style="font-weight:700">Awaiting image</div>
+          <div id="resultSubtitle" class="result-sub">Upload an image to classify.</div>
+        </div>
+      </div>
+      <div class="tips" id="resultTips">Tip: Clear background improves accuracy.</div>
+    </div>
+  </aside>
+</main>
 
-        const recyclingTips = {
-            Cardboard: [
-                "Flatten cardboard boxes to save space in recycling bins.",
-                "Remove any tape, staples, or non-cardboard materials.",
-                "Keep cardboard dry and clean; avoid recycling greasy or food-contaminated items."
-            ],
-            Paper: [
-                "Recycle clean paper like office paper, newspapers, and magazines.",
-                "Remove plastic coatings, bindings, or food residue before recycling.",
-                "Check local guidelines, as some areas don't accept certain papers like laminated sheets."
-            ],
-            metal: [
-                "Recycle aluminum cans, tin cans, and foil after rinsing off food residue.",
-                "Remove non-metal parts like plastic lids if required by your local program.",
-                "Crush cans to save space, but check if your facility prefers them uncrushed."
-            ],
-            Glass: [
-                "Rinse glass bottles and jars to remove food or liquid residue.",
-                "Remove metal lids or corks and recycle them separately if required.",
-                "Check local rules, as some areas only accept certain colors of glass."
-            ],
-            Plastic: [
-                "Recycle plastics marked with recycling symbols 1-7, but check local guidelines.",
-                "Rinse containers and remove non-plastic parts like pumps or caps if needed.",
-                "Avoid recycling plastic bags in curbside bins; use designated drop-off locations."
-            ],
-            Trash: [
-                "Non-recyclable items like food waste or soiled materials should go in the trash.",
-                "Consider composting organic waste if available in your area.",
-                "Reduce waste by choosing reusable items over single-use products."
-            ]
-        };
+<script>
+const fileInput = document.getElementById('fileInput');
+const previewImg = document.getElementById('previewImg');
+const previewEmpty = document.getElementById('previewEmpty');
+const fileMeta = document.getElementById('fileMeta');
+const classifyBtn = document.getElementById('classifyBtn');
+const clearBtn = document.getElementById('clearBtn');
 
-        const imageUpload = document.getElementById('image-upload');
-        const previewImg = document.getElementById('preview-img');
-        const imagePreview = document.getElementById('image-preview');
-        const uploadText = document.getElementById('upload-text');
-        const classifyBtn = document.getElementById('classify-btn');
-        const resultDiv = document.getElementById('result');
-        const recyclingTipsDiv = document.getElementById('recycling-tips');
+const resultIcon = document.getElementById('resultIcon');
+const resultTitle = document.getElementById('resultTitle');
+const resultSubtitle = document.getElementById('resultSubtitle');
+const resultTips = document.getElementById('resultTips');
 
-        async function loadModel() {
-            resultDiv.textContent = 'Loading model... Please wait.';
-            try {
-                model = await tf.loadLayersModel(MODEL_URL);
-                resultDiv.textContent = 'Model loaded. Upload an image to classify.';
-            } catch (err) {
-                resultDiv.textContent = 'Failed to load model.';
-                console.error(err);
-            }
-        }
+let currentFile = null;
+let model = null;
 
-        function preprocessImage(imgElement) {
-            const tensor = tf.browser.fromPixels(imgElement)
-                .resizeNearestNeighbor([224, 224])
-                .toFloat()
-                .expandDims(0)
-                .div(255);
-            return tensor;
-        }
+async function loadModel(){
+  model = await tf.loadLayersModel('https://jonashruda.github.io/trash-detector-ai/model.json');
+  console.log("Model loaded");
+}
+loadModel();
 
-        async function classifyImage() {
-            if (!model) {
-                alert('Model not loaded yet!');
-                return;
-            }
-            resultDiv.textContent = 'Classifying...';
-            recyclingTipsDiv.innerHTML = '';
+function clearSelection(){
+  currentFile = null;
+  previewImg.style.display = 'none';
+  previewEmpty.style.display = 'block';
+  fileMeta.textContent = 'No file';
+  classifyBtn.disabled = true;
+  clearBtn.style.display = 'none';
+  resultTitle.textContent = 'Awaiting image';
+  resultSubtitle.textContent = 'Upload an image to classify.';
+  resultTips.textContent = 'Tip: Clear background improves accuracy.';
+}
 
-            const inputTensor = preprocessImage(previewImg);
-            const prediction = await model.predict(inputTensor).data();
-            inputTensor.dispose();
+function handleFile(file){
+  if (!file || !file.type.startsWith('image/')) return;
+  currentFile = file;
+  const url = URL.createObjectURL(file);
+  previewImg.src = url;
+  previewImg.style.display = 'block';
+  previewEmpty.style.display = 'none';
+  fileMeta.textContent = `${file.name} • ${(file.size/1024|0)} KB`;
+  classifyBtn.disabled = false;
+  clearBtn.style.display = 'inline-block';
+}
 
-            const results = Array.from(prediction)
-                .map((confidence, i) => ({ label: labels[i], confidence }))
-                .sort((a, b) => b.confidence - a.confidence);
+fileInput.addEventListener('change', e => handleFile(fileInput.files[0]));
+clearBtn.addEventListener('click', clearSelection);
 
-            const topResult = results[0];
-            const displayLabel = topResult.label.charAt(0).toUpperCase() + topResult.label.slice(1);
+classifyBtn.addEventListener('click', async () => {
+  if (!currentFile || !model) return;
+  classifyBtn.innerHTML = '<div class="spinner"></div>';
+  classifyBtn.disabled = true;
 
-            resultDiv.textContent = `${displayLabel} (${(topResult.confidence * 100).toFixed(2)}% sure)`;
+  const img = document.createElement('img');
+  img.src = URL.createObjectURL(currentFile);
+  await new Promise(res => img.onload = res);
 
-            const tips = recyclingTips[topResult.label] || ["No specific recycling tips available."];
-            recyclingTipsDiv.innerHTML = `
-                <div class="text-left">
-                    <p class="font-semibold mb-1">How to Recycle ${displayLabel}:</p>
-                    <ul class="list-disc list-inside text-sm">
-                        ${tips.map(tip => `<li>${tip}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
+  const tensor = tf.browser.fromPixels(img)
+    .resizeNearestNeighbor([224, 224])
+    .toFloat()
+    .expandDims();
+  const prediction = model.predict(tensor);
+  const data = await prediction.data();
+  tensor.dispose();
+  prediction.dispose();
 
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+  // Example mapping - adjust labels if different
+  const labels = ['Recyclable', 'Non-recyclable', 'Unknown'];
+  const maxIdx = data.indexOf(Math.max(...data));
+  const confidence = (data[maxIdx] * 100).toFixed(1);
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImg.src = e.target.result;
-                imagePreview.classList.remove('hidden');
-                uploadText.textContent = file.name;
-                classifyBtn.disabled = false;
-                resultDiv.textContent = 'Ready to classify.';
-                recyclingTipsDiv.innerHTML = '';
-            };
-            reader.readAsDataURL(file);
-        }
+  resultTitle.textContent = labels[maxIdx];
+  resultSubtitle.textContent = `Confidence: ${confidence}%`;
 
-        imageUpload.addEventListener('change', previewImage);
-        classifyBtn.addEventListener('click', classifyImage);
+  if (maxIdx === 0){
+    resultIcon.style.background = 'var(--accent)';
+    resultIcon.textContent = '✓';
+    resultTips.textContent = 'This item is likely recyclable. Clean it before disposal.';
+  } else if (maxIdx === 1){
+    resultIcon.style.background = 'var(--danger)';
+    resultIcon.textContent = '✗';
+    resultTips.textContent = 'This item is likely not recyclable. Use general waste.';
+  } else {
+    resultIcon.style.background = 'var(--accent-2)';
+    resultIcon.textContent = '?';
+    resultTips.textContent = 'Uncertain — try a clearer image.';
+  }
 
-        const toggleSlider = document.getElementById('theme-toggle');
-        toggleSlider.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-        });
-
-        loadModel();
-    </script>
+  classifyBtn.textContent = 'Classify';
+  classifyBtn.disabled = false;
+});
+</script>
 </body>
 </html>
